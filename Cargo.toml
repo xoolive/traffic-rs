@@ -1,0 +1,17 @@
+[package]
+name = "traffic-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Xavier Olive <git@xoolive.org>"]
+
+[lib]
+name = "traffic_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.20.0"
+ndarray = "0.15.6"
+numpy = "0.20.0"
+
+[dev-dependencies]
+chrono = "0.4.31"

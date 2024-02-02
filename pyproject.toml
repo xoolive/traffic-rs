@@ -1,0 +1,48 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[tool.poetry]
+name = "traffic_core"
+version = "0.1.0"
+description = "traffic core functions implemented in Rust for performance"
+authors = [ "Xavier Olive <git@xoolive.org>" ]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+packages = [{ include = "traffic_core", from = "python" }]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2.2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.1.2"
+pandas-stubs = "^2.1.4.231227"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "traffic_core._rust_core"
+
+[tool.ruff]
+select = [
+  "E", "W",  # pycodestyle
+  "F",  # pyflakes
+  "I",  # isort
+  "NPY",  # numpy
+  # "PD",  # pandas
+  "DTZ", # flake8-datetimez
+  "RUF"
+]
+line-length = 80
+target-version = "py38"
+
+[tool.pytest.ini_options]
+addopts = "--log-level=INFO --color=yes --doctest-modules --doctest-report ndiff"
+testpaths = [
+    "tests"
+]
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS", "NUMBER"]
