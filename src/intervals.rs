@@ -10,7 +10,7 @@ pub struct Interval<T> {
     pub stop: T,
 }
 
-impl<T> Display for Interval<T>
+impl<T> Display for &Interval<T>
 where
     T: Display,
 {
@@ -23,15 +23,8 @@ where
 pub struct IntervalCollection<T> {
     pub elts: Vec<Interval<T>>,
 }
-pub struct IC<T>(Vec<Interval<T>>);
-impl<T> IC<T> {
-    pub fn elts(&self) -> &Vec<Interval<T>> {
-        &self.0
-    }
-}
-pub type Toto<T> = Vec<Interval<T>>;
 
-impl<T> Display for IntervalCollection<T>
+impl<T> Display for &IntervalCollection<T>
 where
     T: Display,
 {
@@ -47,46 +40,58 @@ where
     }
 }
 
+impl<T> Add for &Interval<T>
+where
+    T: Ord + Copy,
+{
+    type Output = IntervalCollection<T>;
+    fn add(self, other: &Interval<T>) -> IntervalCollection<T> {
+        let left = IntervalCollection { elts: vec![*self] };
+        let right = IntervalCollection { elts: vec![*other] };
+        &left + &right
+    }
+}
+
 impl<T> Add for Interval<T>
 where
     T: Ord + Copy,
 {
     type Output = IntervalCollection<T>;
     fn add(self, other: Interval<T>) -> IntervalCollection<T> {
-        IntervalCollection { elts: vec![self] } + IntervalCollection { elts: vec![other] }
+        &self + &other
     }
 }
 
-/* Implement intersection between two Intervals */
-impl<T> BitAnd for Interval<T>
-where
-    T: Clone + PartialEq + PartialOrd,
-{
-    type Output = Option<Interval<T>>;
-    fn bitand(self, other: Interval<T>) -> Option<Interval<T>> {
-        match self.overlap(&other) {
-            true => Some(Interval {
-                start: match self.start > other.start {
-                    true => self.start,
-                    false => other.start,
-                },
-                stop: match self.stop < other.stop {
-                    true => self.stop,
-                    false => other.stop,
-                },
-            }),
-            false => None,
-        }
-    }
-}
-
-impl<T> Add<IntervalCollection<T>> for Interval<T>
+impl<T> Add<IntervalCollection<T>> for &Interval<T>
 where
     T: Ord + Copy,
 {
     type Output = IntervalCollection<T>;
     fn add(self, other: IntervalCollection<T>) -> IntervalCollection<T> {
-        IntervalCollection { elts: vec![self] } + other
+        let left = IntervalCollection { elts: vec![*self] };
+        &left + &other
+    }
+}
+
+impl<T> Add<&IntervalCollection<T>> for &Interval<T>
+where
+    T: Ord + Copy,
+{
+    type Output = IntervalCollection<T>;
+    fn add(self, other: &IntervalCollection<T>) -> IntervalCollection<T> {
+        let left = IntervalCollection { elts: vec![*self] };
+        &left + other
+    }
+}
+
+impl<T> Add<&Interval<T>> for &IntervalCollection<T>
+where
+    T: Ord + Copy,
+{
+    type Output = IntervalCollection<T>;
+    fn add(self, other: &Interval<T>) -> IntervalCollection<T> {
+        let right = IntervalCollection { elts: vec![*other] };
+        self + &right
     }
 }
 
@@ -96,16 +101,28 @@ where
 {
     type Output = IntervalCollection<T>;
     fn add(self, other: Interval<T>) -> IntervalCollection<T> {
-        self + IntervalCollection { elts: vec![other] }
+        let right = IntervalCollection { elts: vec![other] };
+        self + right
     }
 }
 
-impl<T> Add for IntervalCollection<T>
+impl<T> Add<&Interval<T>> for IntervalCollection<T>
 where
     T: Ord + Copy,
 {
     type Output = IntervalCollection<T>;
-    fn add(self, other: IntervalCollection<T>) -> IntervalCollection<T> {
+    fn add(self, other: &Interval<T>) -> IntervalCollection<T> {
+        let right = IntervalCollection { elts: vec![*other] };
+        self + right
+    }
+}
+
+impl<T> Add for &IntervalCollection<T>
+where
+    T: Ord + Copy,
+{
+    type Output = IntervalCollection<T>;
+    fn add(self, other: &IntervalCollection<T>) -> IntervalCollection<T> {
         let mut elts = Vec::new();
         let mut start = min(&self.elts[0], &other.elts[0]);
 
@@ -155,6 +172,43 @@ where
     }
 }
 
+impl<T> Add for IntervalCollection<T>
+where
+    T: Ord + Copy,
+{
+    type Output = IntervalCollection<T>;
+    fn add(self, other: IntervalCollection<T>) -> IntervalCollection<T> {
+        &self + &other
+    }
+}
+impl<T, Delta> Sub for Interval<T>
+where
+    T: Sub<T, Output = Delta> + Add<Delta, Output = T> + Copy + PartialOrd,
+    Delta: Copy,
+{
+    type Output = IntervalCollection<T>;
+    fn sub(self, other: Interval<T>) -> IntervalCollection<T> {
+        let mut elts = Vec::new();
+        if self.overlap(&other) {
+            if other.start > self.start {
+                elts.push(Interval {
+                    start: self.start,
+                    stop: other.start,
+                })
+            }
+            if other.stop < self.stop {
+                elts.push(Interval {
+                    start: other.stop,
+                    stop: self.stop,
+                })
+            }
+        } else {
+            elts.push(self)
+        }
+        IntervalCollection { elts: elts }
+    }
+}
+
 impl<T, Delta> Sub<Interval<T>> for IntervalCollection<T>
 where
     T: Sub<T, Output = Delta> + Add<Delta, Output = T> + Copy + PartialOrd,
@@ -196,7 +250,71 @@ where
         for elt in other.elts {
             res = res - elt;
         }
-        return res;
+        res
+    }
+}
+
+/* Implement intersection between two Intervals */
+impl<T> BitAnd for &Interval<T>
+where
+    T: Copy + Clone + PartialEq + PartialOrd,
+{
+    type Output = Option<Interval<T>>;
+    fn bitand(self, other: &Interval<T>) -> Option<Interval<T>> {
+        match self.overlap(&other) {
+            true => Some(Interval {
+                start: match self.start > other.start {
+                    true => self.start,
+                    false => other.start,
+                },
+                stop: match self.stop < other.stop {
+                    true => self.stop,
+                    false => other.stop,
+                },
+            }),
+            false => None,
+        }
+    }
+}
+impl<T> BitAnd<&IntervalCollection<T>> for &Interval<T>
+where
+    T: Copy + Clone + PartialEq + PartialOrd,
+{
+    type Output = IntervalCollection<T>;
+    fn bitand(self, other: &IntervalCollection<T>) -> IntervalCollection<T> {
+        let mut elts = Vec::<Interval<T>>::with_capacity(other.elts.len());
+        for interval in &other.elts {
+            match self & interval {
+                None => (),
+                Some(i) => elts.push(i),
+            }
+        }
+        IntervalCollection { elts: elts }
+    }
+}
+
+impl<T> BitAnd<&Interval<T>> for &IntervalCollection<T>
+where
+    T: Copy + Clone + PartialEq + PartialOrd,
+{
+    type Output = IntervalCollection<T>;
+    fn bitand(self, other: &Interval<T>) -> IntervalCollection<T> {
+        other & self
+    }
+}
+
+impl<T> BitAnd for &IntervalCollection<T>
+where
+    T: Copy + Clone + PartialEq + PartialOrd,
+{
+    type Output = IntervalCollection<T>;
+    fn bitand(self, other: &IntervalCollection<T>) -> IntervalCollection<T> {
+        let mut elts = Vec::<Interval<T>>::with_capacity(self.elts.len());
+        for interval in &other.elts {
+            let r = self & interval;
+            elts.extend(r.elts)
+        }
+        IntervalCollection { elts: elts }
     }
 }
 
@@ -221,7 +339,7 @@ where
     T: PartialOrd,
 {
     pub fn overlap(&self, other: &Interval<T>) -> bool {
-        self.start <= other.stop && self.stop >= other.start
+        self.start < other.stop && self.stop > other.start
     }
 }
 
@@ -254,8 +372,8 @@ mod tests {
         assert_eq!(shifted.duration(), 1);
         assert_ne!(shifted, I1);
         assert_eq!(shifted, I2);
-        assert_eq!(format!("{:?}", shifted), "Interval { start: 1, stop: 2 }");
-        assert_eq!(format!("{:}", shifted), "[1, 2]");
+        assert_eq!(format!("{:?}", &shifted), "Interval { start: 1, stop: 2 }");
+        assert_eq!(format!("{:}", &shifted), "[1, 2]");
     }
 
     #[test]
@@ -277,15 +395,15 @@ mod tests {
             format!("{:?}", I1 + I2),
             "IntervalCollection { elts: [Interval { start: 0, stop: 2 }] }"
         );
-        assert_eq!(format!("{:}", I1 + I2), "[[0, 2]]");
-        assert_eq!(format!("{:}", I1 + I3), "[[0, 1], [2, 3]]");
-        assert_eq!(format!("{:}", I2 + I4), "[[1, 2], [3, 4]]");
+        assert_eq!(format!("{:}", &(I1 + I2)), "[[0, 2]]");
+        assert_eq!(format!("{:}", &(I1 + I3)), "[[0, 1], [2, 3]]");
+        assert_eq!(format!("{:}", &(I2 + I4)), "[[1, 2], [3, 4]]");
         let s1 = (I1 + I3) + (I2 + I4);
-        assert_eq!(format!("{:}", s1), "[[0, 4]]");
+        assert_eq!(format!("{:}", &s1), "[[0, 4]]");
         let s2 = (I1 + I3) + (I4 + I5);
-        assert_eq!(format!("{:}", s2), "[[0, 1], [2, 5]]");
+        assert_eq!(format!("{:}", &s2), "[[0, 1], [2, 5]]");
         let s3 = I1 + I3 + I4 + I5;
-        assert_eq!(format!("{:}", s3), "[[0, 1], [2, 5]]");
+        assert_eq!(format!("{:}", &s3), "[[0, 1], [2, 5]]");
 
         let i1 = Interval {
             start: "2024-01-20T12:00:00Z"
@@ -304,15 +422,24 @@ mod tests {
                 .expect("error date"),
         };
         assert_eq!(
-            format!("{:}", i1 + i2),
+            format!("{:}", &(&i1 + &i2)),
             "[[2024-01-20 12:00:00 UTC, 2024-01-20 14:00:00 UTC]]"
         );
-        assert_eq!((i1 + i2).total_duration(), Duration::hours(2));
+        assert_eq!((&i1 + &i2).total_duration(), Duration::hours(2));
     }
 
     #[test]
     fn intervals_sub() {
-        assert_eq!(format!("{:}", (I1 + I2 + I3) - I2), "[[0, 1], [2, 3]]");
-        assert_eq!(format!("{:}", (I1 + I2) - (I3 + I2)), "[[0, 1]]");
+        assert_eq!(format!("{:}", &(I1 - I2)), "[[0, 1]]");
+        assert_eq!(
+            format!("{:}", &(Interval { start: 0, stop: 2 } - I2)),
+            "[[0, 1]]"
+        );
+        assert_eq!(format!("{:}", &((I1 + I2 + I3) - I2)), "[[0, 1], [2, 3]]");
+        assert_eq!(format!("{:}", &((I1 + I2) - (I3 + I2))), "[[0, 1]]");
+        assert_eq!(
+            format!("{:}", &(((I1 + I2) + (I2 + I3) + I5) - (I2 + I3))),
+            "[[0, 1], [4, 5]]"
+        );
     }
 }

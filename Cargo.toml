@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Xavier Olive <git@xoolive.org>"]
 
 [lib]
-name = "traffic_core"
+name = "trafficrs"
 crate-type = ["cdylib"]
 
 [dependencies]
