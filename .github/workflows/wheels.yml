@@ -50,7 +50,7 @@ jobs:
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist --find-interpreter --features="openssl-sys/vendored"
           sccache: "true"
           manylinux: auto
       - name: Upload wheels
@@ -86,7 +86,7 @@ jobs:
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist --find-interpreter --features="openssl-sys/vendored"
           sccache: "true"
           manylinux: musllinux_1_2
       - name: Upload wheels
@@ -102,10 +102,10 @@ jobs:
         platform:
           - runner: windows-latest
             target: x64
-            triplet: x64-windows-static-md
+            triplet: x64-windows-static
           - runner: windows-latest
             target: x86
-            triplet: x86-windows-static-md
+            triplet: x86-windows-static
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v2
@@ -128,6 +128,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         env:
           VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+          RUSTFLAGS: "-C target-feature=+crt-static"
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}
