@@ -1,0 +1,24 @@
+[package]
+name = "trafficrs-python"
+description = "Python binding to trafficrs core functions (Rust version of traffic)"
+repository = "https://github.com/xoolive/traffic-rs"
+readme = "readme.md"
+authors.workspace = true
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[lib]
+name = "thrust"
+crate-type = ["cdylib"]
+
+[dependencies]
+numpy = "0.21.0"
+polars = { version = "0.41.3", features = ["lazy", "rolling_window"] }
+polars-core = "0.41.3"
+pyo3 = "0.21.0"
+pyo3-polars = "0.15.0"
+trafficrs = { version = "0.1.0", path = "../crates/trafficrs" }
+
+[dev-dependencies]
+chrono = "0.4.38"

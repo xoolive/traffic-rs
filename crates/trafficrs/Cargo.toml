@@ -1,0 +1,11 @@
+[package]
+name = "trafficrs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Xavier Olive <git@xoolive.org>"]
+
+[dependencies]
+ndarray-linalg = { version = "0.16.0", features = ["openblas-static"] }
+numpy = "0.21.0"
+polars = { version = "0.41.3", features = ["lazy", "rolling_window"] }
+polars-core = "0.41.3"

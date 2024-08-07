@@ -1,17 +1,20 @@
-[package]
-name = "traffic-rs"
-version = "0.1.0"
+[workspace]
+members = ["crates/*", "python"]
+resolver = "2"
+
+[workspace.package]
+license = "MIT"
 edition = "2021"
-authors = ["Xavier Olive <git@xoolive.org>"]
+readme = "readme.md"
+version = "0.1.0"
+authors = ["Xavier Olive <git@xoolive.org"]
 
-[lib]
-name = "trafficrs"
-crate-type = ["cdylib"]
+[profile.release]
+lto = true
+strip = true
+overflow-checks = true
 
-[dependencies]
-pyo3 = "0.20.0"
-ndarray = "0.15.6"
-numpy = "0.20.0"
-
-[dev-dependencies]
-chrono = "0.4.31"
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
