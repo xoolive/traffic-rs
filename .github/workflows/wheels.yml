@@ -3,7 +3,7 @@
 #
 #    maturin generate-ci github
 #
-name: CI
+name: wheels
 
 on:
   push:
@@ -41,6 +41,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
+      - name: Install pkg-config by apt
+        run: |
+          apt update
+          apt install -y pkg-config
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -73,6 +77,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
+      - name: Install pkg-config by apt
+        run: |
+          apt update
+          apt install -y pkg-config
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -98,12 +106,26 @@ jobs:
             target: x86
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v2
+        with:
+          path: ./vcpkg
+          key: vcpkg-openblas
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git --depth 1
+          cd vcpkg
+          ./bootstrap-vcpkg.bat
+      - name: Install OpenBLAS by vcpkg
+        run: |
+          ./vcpkg/vcpkg.exe install openblas:x64-windows-static
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}/vcpkg
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}
