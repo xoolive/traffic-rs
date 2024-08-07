@@ -43,8 +43,8 @@ jobs:
           python-version: 3.x
       - name: Install pkg-config by apt
         run: |
-          apt update
-          apt install -y pkg-config
+          sudo apt update
+          sudo apt install -y pkg-config
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -79,8 +79,8 @@ jobs:
           python-version: 3.x
       - name: Install pkg-config by apt
         run: |
-          apt update
-          apt install -y pkg-config
+          sudo apt update
+          sudo apt install -y pkg-config
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -126,6 +126,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         env:
           VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+          RUSTFLAGS: "-C target-feature=+crt-static"
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}

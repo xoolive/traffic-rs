@@ -1,5 +1,5 @@
 [package]
-name = "trafficrs-python"
+name = "traffic-thrust"
 description = "Python binding to trafficrs core functions (Rust version of traffic)"
 repository = "https://github.com/xoolive/traffic-rs"
 readme = "readme.md"
@@ -7,6 +7,13 @@ authors.workspace = true
 version.workspace = true
 license.workspace = true
 edition.workspace = true
+exclude = [
+    "__pycache__",
+    "**/__pycache__",
+    "**/__pycache__/**",
+    "*.pyc",
+    "**/*.pyc",
+]
 
 [lib]
 name = "thrust"
