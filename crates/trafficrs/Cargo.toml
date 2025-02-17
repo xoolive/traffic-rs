@@ -5,13 +5,23 @@ edition = "2021"
 authors = ["Xavier Olive <git@xoolive.org>"]
 
 [dependencies]
-ndarray-linalg = { version = "0.16.0", features = ["openblas-static"] }
-numpy = "0.21.0"
-polars = { version = "0.41.3", features = ["lazy", "rolling_window"] }
-polars-core = "0.41.3"
+geo-types = "0.7"
+ndarray-linalg = { version = "0.17.0", features = ["openblas-static"] }
+numpy = "0.23.0"
+polars = { version = "0.46.0", features = ["lazy", "rolling_window"] }
+polars-core = "0.46.0"
+quick-xml = "0.37.2"
+serde = { version = "1.0", features = ["derive"] }
+zip = "2.2.2"
+
+[target.'cfg(linux)'.dependencies]
+openssl-sys = { version = "0.9.103", features = ["vendored"] }
 
 [target.'cfg(windows)'.dependencies]
-ndarray-linalg = { version = "0.16.0", features = [
+ndarray-linalg = { version = "0.17.0", features = [
     "openblas-static",
     "openblas-system",
 ] }
+
+[dev-dependencies]
+jiff = "0.2.1"
