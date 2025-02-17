@@ -58,7 +58,9 @@ where
 {
     type Output = IntervalCollection<T>;
     fn add(self, other: Interval<T>) -> IntervalCollection<T> {
-        &self + &other
+        let left = IntervalCollection { elts: vec![self] };
+        let right = IntervalCollection { elts: vec![other] };
+        &left + &right
     }
 }
 
@@ -127,14 +129,14 @@ where
         let mut start = min(&self.elts[0], &other.elts[0]);
 
         loop {
-            let swiping_line = *(&start.start);
-            let mut horizon = *(&start.stop);
+            let swiping_line = start.start;
+            let mut horizon = start.stop;
 
             horizon = self
                 .elts
                 .iter()
                 .chain(other.elts.iter())
-                .filter(|elt| &swiping_line <= &elt.start && &elt.start <= &horizon)
+                .filter(|elt| swiping_line <= elt.start && elt.start <= horizon)
                 .map(|elt| elt.stop)
                 .max()
                 .expect("Unexpected error");
@@ -144,7 +146,7 @@ where
                     .elts
                     .iter()
                     .chain(other.elts.iter())
-                    .filter(|elt| &elt.start <= &horizon && &horizon < &elt.stop)
+                    .filter(|elt| elt.start <= horizon && horizon < elt.stop)
                     .map(|elt| elt.stop)
                     .max()
                 {
@@ -160,7 +162,7 @@ where
                 .elts
                 .iter()
                 .chain(other.elts.iter())
-                .filter(|elt| &elt.start > &horizon)
+                .filter(|elt| elt.start > horizon)
                 .min()
             {
                 None => break,
@@ -168,7 +170,7 @@ where
             }
         }
 
-        IntervalCollection { elts: elts }
+        IntervalCollection { elts }
     }
 }
 
@@ -205,7 +207,7 @@ where
         } else {
             elts.push(self)
         }
-        IntervalCollection { elts: elts }
+        IntervalCollection { elts }
     }
 }
 
@@ -235,7 +237,7 @@ where
                 elts.push(elt)
             }
         }
-        IntervalCollection { elts: elts }
+        IntervalCollection { elts }
     }
 }
 
@@ -261,7 +263,7 @@ where
 {
     type Output = Option<Interval<T>>;
     fn bitand(self, other: &Interval<T>) -> Option<Interval<T>> {
-        match self.overlap(&other) {
+        match self.overlap(other) {
             true => Some(Interval {
                 start: match self.start > other.start {
                     true => self.start,
@@ -289,7 +291,7 @@ where
                 Some(i) => elts.push(i),
             }
         }
-        IntervalCollection { elts: elts }
+        IntervalCollection { elts }
     }
 }
 
@@ -314,7 +316,7 @@ where
             let r = self & interval;
             elts.extend(r.elts)
         }
-        IntervalCollection { elts: elts }
+        IntervalCollection { elts }
     }
 }
 
@@ -357,7 +359,7 @@ where
 mod tests {
 
     use super::Interval;
-    use chrono::{DateTime, Duration, Utc};
+    use jiff::{Timestamp, ToSpan};
 
     static I1: Interval<i32> = Interval { start: 0, stop: 1 };
     static I2: Interval<i32> = Interval { start: 1, stop: 2 };
@@ -378,16 +380,18 @@ mod tests {
 
     #[test]
     fn interval_dt() {
-        let i_dt = Interval {
-            start: "2024-01-20T12:00:00Z"
-                .parse::<DateTime<Utc>>()
-                .expect("error date"),
-            stop: "2024-01-20T13:00:00Z"
-                .parse::<DateTime<Utc>>()
-                .expect("error date"),
+        let i_dt: Interval<Timestamp> = Interval {
+            start: "2024-01-20T12:00:00Z".parse().expect("error date"),
+            stop: "2024-01-20T13:00:00Z".parse().expect("error date"),
         };
-        assert_eq!(i_dt.duration(), Duration::hours(1));
-        assert_eq!(i_dt.shift(Duration::days(1)).duration(), Duration::hours(1));
+        assert_eq!(
+            i_dt.duration().compare(1.hour()).unwrap(),
+            std::cmp::Ordering::Equal
+        );
+        assert_eq!(
+            i_dt.shift(5.hour()).duration().compare(1.hour()).unwrap(),
+            std::cmp::Ordering::Equal
+        );
     }
     #[test]
     fn intervals_consistent() {
@@ -405,27 +409,18 @@ mod tests {
         let s3 = I1 + I3 + I4 + I5;
         assert_eq!(format!("{:}", &s3), "[[0, 1], [2, 5]]");
 
-        let i1 = Interval {
-            start: "2024-01-20T12:00:00Z"
-                .parse::<DateTime<Utc>>()
-                .expect("error date"),
-            stop: "2024-01-20T13:00:00Z"
-                .parse::<DateTime<Utc>>()
-                .expect("error date"),
+        let i1: Interval<Timestamp> = Interval {
+            start: "2024-01-20T12:00:00Z".parse().expect("error date"),
+            stop: "2024-01-20T13:00:00Z".parse().expect("error date"),
         };
         let i2 = Interval {
-            start: "2024-01-20T13:00:00Z"
-                .parse::<DateTime<Utc>>()
-                .expect("error date"),
-            stop: "2024-01-20T14:00:00Z"
-                .parse::<DateTime<Utc>>()
-                .expect("error date"),
+            start: "2024-01-20T13:00:00Z".parse().expect("error date"),
+            stop: "2024-01-20T14:00:00Z".parse().expect("error date"),
         };
         assert_eq!(
-            format!("{:}", &(&i1 + &i2)),
-            "[[2024-01-20 12:00:00 UTC, 2024-01-20 14:00:00 UTC]]"
+            format!("{:}", &(i1 + i2)),
+            "[[2024-01-20T12:00:00Z, 2024-01-20T14:00:00Z]]"
         );
-        assert_eq!((&i1 + &i2).total_duration(), Duration::hours(2));
     }
 
     #[test]
