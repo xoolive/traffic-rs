@@ -1,15 +1,15 @@
 use quick_xml::name::QName;
 use quick_xml::Reader;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
+use std::{collections::HashMap, fs::File};
 use zip::read::ZipArchive;
 
 use super::{find_node, read_text};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Airport {
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct AirportHeliport {
     pub identifier: String,
     pub latitude: f64,
     pub longitude: f64,
@@ -21,41 +21,34 @@ pub struct Airport {
     pub r#type: String,
 }
 
-pub fn parse_airport_zip_file<P: AsRef<Path>>(
+pub fn parse_airport_heliport_zip_file<P: AsRef<Path>>(
     path: P,
-) -> Result<Vec<Airport>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<String, AirportHeliport>, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let mut archive = ZipArchive::new(file)?;
-    let mut airports = Vec::new();
+    let mut airports = HashMap::new();
 
     for i in 0..archive.len() {
         let file = archive.by_index(i)?;
         if file.name().ends_with(".BASELINE") {
             let mut reader = Reader::from_reader(BufReader::new(file));
-            while let Ok(_node) =
-                find_node(&mut reader, vec![QName(b"adrmsg:hasMember")], None)
-            {
-                airports.push(parse_airport(&mut reader)?);
+            while let Ok(_node) = find_node(
+                &mut reader,
+                vec![QName(b"aixm:AirportHeliport")],
+                None,
+            ) {
+                let airport = parse_airport_heliport(&mut reader)?;
+                airports.insert(airport.identifier.clone(), airport);
             }
         }
     }
     Ok(airports)
 }
 
-fn parse_airport<R: std::io::BufRead>(
+fn parse_airport_heliport<R: std::io::BufRead>(
     reader: &mut Reader<R>,
-) -> Result<Airport, Box<dyn std::error::Error>> {
-    let mut airport = Airport {
-        identifier: String::new(),
-        latitude: 0.0,
-        longitude: 0.0,
-        altitude: 0.0,
-        iata: None,
-        icao: String::new(),
-        name: String::new(),
-        city: None,
-        r#type: String::new(),
-    };
+) -> Result<AirportHeliport, Box<dyn std::error::Error>> {
+    let mut airport = AirportHeliport::default();
 
     while let Ok(node) = find_node(
         reader,
@@ -66,9 +59,9 @@ fn parse_airport<R: std::io::BufRead>(
             QName(b"aixm:name"),
             QName(b"aixm:servedCity"),
             QName(b"aixm:controlType"),
-            QName(b"aixm:ARP"),
+            QName(b"aixm:ElevatedPoint"),
         ],
-        Some(QName(b"adrmsg:hasMember")),
+        Some(QName(b"aixm:AirportHeliport")),
     ) {
         match node {
             QName(b"gml:identifier") => {
@@ -96,17 +89,11 @@ fn parse_airport<R: std::io::BufRead>(
             QName(b"aixm:controlType") => {
                 airport.r#type = read_text(reader, node)?;
             }
-            QName(b"aixm:ARP") => {
-                find_node(
-                    reader,
-                    vec![QName(b"aixm:ElevatedPoint")],
-                    Some(node),
-                )?;
-
+            QName(b"aixm:ElevatedPoint") => {
                 while let Ok(node) = find_node(
                     reader,
                     vec![QName(b"gml:pos"), QName(b"aixm:elevation")],
-                    Some(QName(b"aixm:ElevatedPoint")),
+                    Some(node),
                 ) {
                     match node {
                         QName(b"gml:pos") => {
