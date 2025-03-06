@@ -41,12 +41,12 @@ fn interval_and(
         stop: stop2,
     };
     let res = match &left & &right {
-        None => [("empty", true)].into_py_dict_bound(py),
+        None => [("empty", true)].into_py_dict(py),
         Some(Interval { start, stop }) => {
-            [("start", start), ("stop", stop)].into_py_dict_bound(py)
+            [("start", start), ("stop", stop)].into_py_dict(py)
         }
     };
-    Ok(res)
+    res
 }
 
 #[pyfunction]
@@ -63,9 +63,9 @@ fn collection_and<'a>(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -87,9 +87,9 @@ fn collection_andi<'a>(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -114,9 +114,9 @@ fn interval_add(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -135,9 +135,9 @@ fn collection_add<'a>(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -159,9 +159,9 @@ fn collection_addi<'a>(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -186,9 +186,9 @@ fn interval_sub(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -207,9 +207,9 @@ fn collection_sub<'a>(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -231,9 +231,9 @@ fn collection_subi<'a>(
     let start: Vec<i64> = res.elts.iter().map(|elt| elt.start).collect();
     let stop: Vec<i64> = res.elts.iter().map(|elt| elt.stop).collect();
 
-    let wrapped_res = PyDict::new_bound(py);
-    wrapped_res.set_item("start", PyArray1::from_vec_bound(py, start))?;
-    wrapped_res.set_item("stop", PyArray1::from_vec_bound(py, stop))?;
+    let wrapped_res = PyDict::new(py);
+    wrapped_res.set_item("start", PyArray1::from_vec(py, start))?;
+    wrapped_res.set_item("stop", PyArray1::from_vec(py, stop))?;
     Ok(wrapped_res)
 }
 
@@ -241,18 +241,18 @@ fn collection_subi<'a>(
 fn kalman6d_rs(py: Python, pydf: PyDataFrame) -> PyResult<Bound<PyDict>> {
     kalman6d(pydf.into())
         .map(|(x_pre, x_cor, p_pre, p_cor)| {
-            let wrapped_res = PyDict::new_bound(py);
+            let wrapped_res = PyDict::new(py);
             wrapped_res
-                .set_item("x_pre", PyArray2::from_owned_array_bound(py, x_pre))
+                .set_item("x_pre", PyArray2::from_owned_array(py, x_pre))
                 .unwrap();
             wrapped_res
-                .set_item("x_cor", PyArray2::from_owned_array_bound(py, x_cor))
+                .set_item("x_cor", PyArray2::from_owned_array(py, x_cor))
                 .unwrap();
             wrapped_res
-                .set_item("p_pre", PyArray3::from_owned_array_bound(py, p_pre))
+                .set_item("p_pre", PyArray3::from_owned_array(py, p_pre))
                 .unwrap();
             wrapped_res
-                .set_item("p_cor", PyArray3::from_owned_array_bound(py, p_cor))
+                .set_item("p_cor", PyArray3::from_owned_array(py, p_cor))
                 .unwrap();
             wrapped_res
         })

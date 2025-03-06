@@ -3,23 +3,36 @@ requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "traffic_thrust"
-requires-python = ">=3.9"
-dependencies = ["pandas>=2.2.0", "polars>=1.4.1"]
+name = "thrust"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.2.0", "polars>=1.4.1", "traffic>=2.12"]
 classifiers = [
   "Programming Language :: Rust",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-packages = [{ include = "thrust" }]
 dynamic = ["version"]
 
 [tool.maturin]
 module-name = "thrust.core"
 features = ["pyo3/extension-module"]
 
+[tool.uv]
+cache-keys = [
+  { file = "pyproject.toml" },
+  { file = "Cargo.toml" },
+  { file = "../Cargo.toml" },
+  { file = "../**/*.rs" },
+]
+dev-dependencies = [
+  "mypy>=1.13.0",
+  "pytest>=8.3.3",
+  "ruff>=0.7.2",
+  "vl-convert-python>=1.7.0",
+]
+
 [tool.ruff]
-select = [
+lint.select = [
   "E",
   "W",   # pycodestyle
   "F",   # pyflakes
@@ -30,10 +43,10 @@ select = [
   "RUF",
 ]
 line-length = 80
-target-version = "py39"
+target-version = "py310"
 
 [tool.mypy]
-python_version = 3.9
+python_version = "3.10"
 platform = "posix"
 
 color_output = true

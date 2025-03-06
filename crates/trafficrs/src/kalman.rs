@@ -3,9 +3,10 @@ use numpy::ndarray::{s, Array, Array2, Array3};
 use polars::prelude::SeriesOpsTime;
 use polars::prelude::*;
 
-pub fn kalman6d(
-    df: DataFrame,
-) -> PolarsResult<(Array2<f64>, Array2<f64>, Array3<f64>, Array3<f64>)> {
+type KalmanOutput =
+    PolarsResult<(Array2<f64>, Array2<f64>, Array3<f64>, Array3<f64>)>;
+
+pub fn kalman6d(df: DataFrame) -> KalmanOutput {
     let (n_rows, n_cols) = df.shape();
     let identity: Array2<f64> = Array2::eye(n_cols);
     let dt = 1.;
@@ -40,28 +41,52 @@ pub fn kalman6d(
     };
 
     let df_x = df.column("x")?;
-    let df_x_rolling_mean = df_x.rolling_mean(rolling_mean_params.clone())?;
-    let std_x = (df_x - &df_x_rolling_mean)?.std(1).unwrap_or(0.);
+    let df_x_rolling_mean = df_x
+        .as_materialized_series()
+        .rolling_mean(rolling_mean_params.clone())?;
+    let std_x = (df_x.as_materialized_series() - &df_x_rolling_mean)?
+        .std(1)
+        .unwrap_or(0.);
 
     let df_y = df.column("y")?;
-    let df_y_rolling_mean = df_y.rolling_mean(rolling_mean_params.clone())?;
-    let std_y = (df_y - &df_y_rolling_mean)?.std(1).unwrap_or(0.);
+    let df_y_rolling_mean = df_y
+        .as_materialized_series()
+        .rolling_mean(rolling_mean_params.clone())?;
+    let std_y = (df_y.as_materialized_series() - &df_y_rolling_mean)?
+        .std(1)
+        .unwrap_or(0.);
 
     let df_z = df.column("z")?;
-    let df_z_rolling_mean = df_z.rolling_mean(rolling_mean_params.clone())?;
-    let std_z = (df_z - &df_z_rolling_mean)?.std(1).unwrap_or(0.);
+    let df_z_rolling_mean = df_z
+        .as_materialized_series()
+        .rolling_mean(rolling_mean_params.clone())?;
+    let std_z = (df_z.as_materialized_series() - &df_z_rolling_mean)?
+        .std(1)
+        .unwrap_or(0.);
 
     let df_dx = df.column("dx")?;
-    let df_dx_rolling_mean = df_dx.rolling_mean(rolling_mean_params.clone())?;
-    let std_dx = (df_dx - &df_dx_rolling_mean)?.std(1).unwrap_or(0.);
+    let df_dx_rolling_mean = df_dx
+        .as_materialized_series()
+        .rolling_mean(rolling_mean_params.clone())?;
+    let std_dx = (df_dx.as_materialized_series() - &df_dx_rolling_mean)?
+        .std(1)
+        .unwrap_or(0.);
 
     let df_dy = df.column("dy")?;
-    let df_dy_rolling_mean = df_dy.rolling_mean(rolling_mean_params.clone())?;
-    let std_dy = (df_dy - &df_dy_rolling_mean)?.std(1).unwrap_or(0.);
+    let df_dy_rolling_mean = df_dy
+        .as_materialized_series()
+        .rolling_mean(rolling_mean_params.clone())?;
+    let std_dy = (df_dy.as_materialized_series() - &df_dy_rolling_mean)?
+        .std(1)
+        .unwrap_or(0.);
 
     let df_dz = df.column("dz")?;
-    let df_dz_rolling_mean = df_dz.rolling_mean(rolling_mean_params.clone())?;
-    let std_dz = (df_dz - &df_dz_rolling_mean)?.std(1).unwrap_or(0.);
+    let df_dz_rolling_mean = df_dz
+        .as_materialized_series()
+        .rolling_mean(rolling_mean_params.clone())?;
+    let std_dz = (df_dz.as_materialized_series() - &df_dz_rolling_mean)?
+        .std(1)
+        .unwrap_or(0.);
 
     let r_diag =
         Array::from_vec(vec![std_x, std_y, std_z, std_dx, std_dy, std_dz]);

@@ -2,6 +2,7 @@ from typing import TypedDict
 
 import numpy as np
 import numpy.typing as npt
+import polars as pl
 
 class IntervalCollectionDict(TypedDict):
     start: npt.NDArray[np.int64]
@@ -10,6 +11,9 @@ class IntervalCollectionDict(TypedDict):
 class IntervalDict(TypedDict):
     start: int
     stop: int
+
+class KalmanResult(TypedDict):
+    x_cor: list[npt.NDArray[np.float64]]
 
 def interval_and(
     start1: int, stop1: int, start2: int, stop2: int
@@ -56,3 +60,4 @@ def collection_subi(
     start2: int,
     stop2: int,
 ) -> IntervalCollectionDict: ...
+def kalman6d_rs(data: pl.DataFrame) -> KalmanResult: ...

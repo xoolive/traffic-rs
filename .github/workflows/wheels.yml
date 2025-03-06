@@ -50,7 +50,7 @@ jobs:
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features="openssl-sys/vendored"
+          args: --release --out dist --find-interpreter
           sccache: "true"
           manylinux: auto
       - name: Upload wheels
@@ -86,7 +86,7 @@ jobs:
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --features="openssl-sys/vendored"
+          args: --release --out dist --find-interpreter
           sccache: "true"
           manylinux: musllinux_1_2
       - name: Upload wheels
