@@ -1,11 +1,16 @@
 use polars::prelude::*;
-use std::path::Path;
+use std::{env, path::Path};
 use trafficrs::data::eurocontrol::aixm::airport_heliport::parse_airport_heliport_zip_file;
 
 fn main() {
-    let path = Path::new(
-        "/Users/xo/Documents/data/AIRAC_2413/AirportHeliport.BASELINE.zip",
-    );
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        eprintln!("Usage: {} <path_to_directory>", args[0]);
+        std::process::exit(1);
+    }
+    let path = Path::new(&args[1]);
+    let path = path.join("AirportHeliport.BASELINE.zip");
+
     match parse_airport_heliport_zip_file(path) {
         Ok(airports) => {
             if let Ok(df) = df!(

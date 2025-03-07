@@ -1,10 +1,16 @@
 use polars::prelude::*;
-use std::path::Path;
+use std::{env, path::Path};
 use trafficrs::data::eurocontrol::aixm::navaid::parse_navaid_zip_file;
 
 fn main() {
-    let path =
-        Path::new("/Users/xo/Documents/data/AIRAC_2413/Navaid.BASELINE.zip");
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        eprintln!("Usage: {} <path_to_directory>", args[0]);
+        std::process::exit(1);
+    }
+    let path = Path::new(&args[1]);
+    let path = path.join("Navaid.BASELINE.zip");
+
     match parse_navaid_zip_file(path) {
         Ok(navaids) => {
             if let Ok(df) = df!(

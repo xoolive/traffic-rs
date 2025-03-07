@@ -3,6 +3,8 @@ use quick_xml::{events::Event, name::QName, Reader};
 pub mod airport_heliport;
 pub mod designated_point;
 pub mod navaid;
+pub mod route;
+pub mod route_segment;
 
 fn find_node<'a, R: std::io::BufRead>(
     reader: &mut Reader<R>,

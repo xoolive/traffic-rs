@@ -1,11 +1,16 @@
 use polars::prelude::*;
-use std::path::Path;
+use std::{env, path::Path};
 use trafficrs::data::eurocontrol::aixm::designated_point::parse_designated_point_zip_file;
 
 fn main() {
-    let path = Path::new(
-        "/Users/xo/Documents/data/AIRAC_2413/DesignatedPoint.BASELINE.zip",
-    );
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        eprintln!("Usage: {} <path_to_directory>", args[0]);
+        std::process::exit(1);
+    }
+    let path = Path::new(&args[1]);
+    let path = path.join("DesignatedPoint.BASELINE.zip");
+
     match parse_designated_point_zip_file(path) {
         Ok(point) => {
             if let Ok(df) = df!(
