@@ -78,9 +78,9 @@ pub enum Connector {
     /// IFPSTART - CFMU IFPS special: start IFR handling
     #[serde(rename = "IFPSTART")]
     IfpStart,
-    /// Stay at current position
+    /// Stay at current position with optional time
     #[serde(rename = "STAY")]
-    Stay,
+    StayTime { minutes: Option<u16> },
     /// NAT track (NATA-NATZ, NAT1-NAT9, NATX, etc.)
     #[serde(rename = "NAT")]
     Nat(String),
@@ -96,6 +96,9 @@ pub struct Modifier {
     pub speed: Option<Speed>,
     /// Flight level or altitude (e.g., "F340" for FL340, "S1130" for 11,300 meters)
     pub altitude: Option<Altitude>,
+    /// Cruise climb end altitude (for cruise climb)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub altitude_cruise_to: Option<Altitude>,
     /// Cruise climb indicator (e.g., "PLUS" after speed/altitude)
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub cruise_climb: bool,
@@ -173,7 +176,13 @@ impl fmt::Display for Connector {
             Connector::Gat => write!(f, "GAT"),
             Connector::IfpStop => write!(f, "IFPSTOP"),
             Connector::IfpStart => write!(f, "IFPSTART"),
-            Connector::Stay => write!(f, "STAY"),
+            Connector::StayTime { minutes } => {
+                if let Some(m) = minutes {
+                    write!(f, "STAY({})", m)
+                } else {
+                    write!(f, "STAY")
+                }
+            }
             Connector::Sid(s) => write!(f, "SID({})", s),
             Connector::Star(s) => write!(f, "STAR({})", s),
             Connector::Nat(s) => write!(f, "NAT({})", s),
@@ -246,6 +255,31 @@ impl Field15Parser {
 
             // Handle forward slash - it signals a speed/altitude change is coming
             if token == "/" {
+                i += 1;
+                continue;
+            }
+
+            // Check for STAY element (STAY followed by digit)
+            if Self::is_stay(token) {
+                // Look for optional /HHMM
+                let stay_minutes = if i + 2 < tokens.len() && tokens[i + 1] == "/" {
+                    if let Some(mins) = Self::parse_stay_time(tokens[i + 2]) {
+                        i += 2; // Skip slash and time
+                        Some(mins)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                elements.push(Field15Element::Connector(Connector::StayTime { minutes: stay_minutes }));
+                i += 1;
+                continue;
+            }
+
+            // Check for "C" cruise climb indicator
+            if token == "C" && i + 1 < tokens.len() && tokens[i + 1] == "/" {
+                // This is a cruise climb indicator, skip it (handled by modifier)
                 i += 1;
                 continue;
             }
@@ -393,30 +427,43 @@ impl Field15Parser {
         // Try to parse speed
         let speed = Self::parse_speed(&base_token[..speed_len]);
 
-        // If we have speed, try to parse altitude from the remaining characters
-        let altitude = if speed.is_some() && base_token.len() > speed_len {
+        // Parse altitude(s) from remaining characters
+        let (altitude, altitude_cruise_to) = if speed.is_some() && base_token.len() > speed_len {
             let remaining = &base_token[speed_len..];
-            if remaining.len() >= 4 {
-                // Try 4-character altitude first (S, M, A formats)
-                Self::parse_altitude(remaining)
-            } else if remaining.len() >= 3 {
-                // Try 3-character altitude (F format)
-                Self::parse_altitude(remaining)
+            // Check for two altitudes (cruise climb: speed/alt1/alt2)
+            if remaining.len() >= 7 {
+                // Try to parse two altitudes
+                let first_alt_len = if remaining.starts_with('F') || remaining.starts_with('A') {
+                    4
+                } else {
+                    5
+                };
+                if remaining.len() >= first_alt_len + 3 {
+                    let alt1 = Self::parse_altitude(&remaining[..first_alt_len]);
+                    let alt2 = Self::parse_altitude(&remaining[first_alt_len..]);
+                    if alt1.is_some() && alt2.is_some() {
+                        (alt1, alt2)
+                    } else {
+                        (Self::parse_altitude(remaining), None)
+                    }
+                } else {
+                    (Self::parse_altitude(remaining), None)
+                }
             } else {
-                None
+                (Self::parse_altitude(remaining), None)
             }
         } else if speed.is_none() && base_token.len() >= 3 {
-            // Try to parse altitude-only modifier (e.g., F340)
-            Self::parse_altitude(base_token)
+            (Self::parse_altitude(base_token), None)
         } else {
-            None
+            (None, None)
         };
 
-        // Only treat as modifier if altitude is present (with or without speed)
+        // Only treat as modifier if altitude is present
         if altitude.is_some() {
             Some(Modifier {
                 speed,
                 altitude,
+                altitude_cruise_to,
                 cruise_climb,
             })
         } else {
@@ -745,6 +792,26 @@ impl Field15Parser {
         }
         false
     }
+
+    /// Check if a token is a STAY element (STAY followed by digit)
+    fn is_stay(token: &str) -> bool {
+        token.len() == 5 && token.starts_with("STAY") && token.chars().nth(4).unwrap().is_ascii_digit()
+    }
+
+    /// Parse STAY time in HHMM format
+    fn parse_stay_time(time_str: &str) -> Option<u16> {
+        if time_str.len() != 4 {
+            return None;
+        }
+        // Validate HHMM format: HH must be 00-23, MM must be 00-59
+        let hh = time_str[..2].parse::<u16>().ok()?;
+        let mm = time_str[2..].parse::<u16>().ok()?;
+        if hh <= 23 && mm <= 59 {
+            Some(hh * 60 + mm)
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -870,6 +937,7 @@ mod tests {
                     speed: Some(Speed::Knots(456)),
                     altitude: Some(Altitude::FlightLevel(340)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Sid("LACOU5A".to_string())),
                 Field15Element::Point(Point::Waypoint("LACOU".to_string())),
@@ -900,6 +968,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::MetricAltitude(825)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Coordinate((0., 0.))),
                 Field15Element::Connector(Connector::Airway("B9".to_string())),
@@ -911,6 +980,7 @@ mod tests {
                     speed: Some(Speed::Knots(350)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Coordinate((1., -1.))),
                 Field15Element::Point(Point::Coordinate((-1., -1.))),
@@ -936,6 +1006,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Waypoint("POINT".to_string())),
                 Field15Element::Connector(Connector::Oat),
@@ -958,6 +1029,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Waypoint("POINT".to_string())),
                 Field15Element::Connector(Connector::IfpStop),
@@ -981,6 +1053,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Waypoint("POINT".to_string())),
                 Field15Element::Point(Point::BearingDistance {
@@ -1004,6 +1077,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Aerodrome("LFPG".to_string())),
                 Field15Element::Connector(Connector::Direct),
@@ -1023,6 +1097,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Waypoint("POINT".to_string())),
                 Field15Element::Connector(Connector::Direct),
@@ -1043,6 +1118,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Sid("SID".to_string())),
                 Field15Element::Point(Point::Waypoint("POINT".to_string())),
@@ -1065,6 +1141,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Aerodrome("LFPG".to_string())),
                 Field15Element::Connector(Connector::Direct),
@@ -1134,6 +1211,7 @@ mod tests {
                     speed: Some(Speed::Knots(495)),
                     altitude: Some(Altitude::FlightLevel(320)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Sid("RANUX3D".to_string())),
                 Field15Element::Point(Point::Waypoint("RANUX".to_string())),
@@ -1143,6 +1221,7 @@ mod tests {
                     speed: Some(Speed::Knots(491)),
                     altitude: Some(Altitude::FlightLevel(330)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Airway("UM163".to_string())),
                 Field15Element::Point(Point::Waypoint("DIK".to_string())),
@@ -1158,6 +1237,7 @@ mod tests {
                     speed: Some(Speed::Knots(482)),
                     altitude: Some(Altitude::FlightLevel(350)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
                 Field15Element::Point(Point::Waypoint("VEDEN".to_string())),
@@ -1176,6 +1256,7 @@ mod tests {
                     speed: Some(Speed::Knots(458)),
                     altitude: Some(Altitude::FlightLevel(320)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Waypoint("BERGI".to_string())),
                 Field15Element::Connector(Connector::Airway("UL602".to_string())),
@@ -1194,6 +1275,7 @@ mod tests {
                     speed: Some(Speed::Mach(0.79)),
                     altitude: Some(Altitude::FlightLevel(320)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
                 Field15Element::Point(Point::Coordinate((62., -10.))),
@@ -1217,6 +1299,7 @@ mod tests {
                     speed: Some(Speed::Knots(427)),
                     altitude: Some(Altitude::FlightLevel(230)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Sid("DET1J".to_string())),
                 Field15Element::Point(Point::Waypoint("DET".to_string())),
@@ -1228,6 +1311,7 @@ mod tests {
                     speed: Some(Speed::Knots(470)),
                     altitude: Some(Altitude::FlightLevel(350)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Airway("UL607".to_string())),
                 Field15Element::Point(Point::Waypoint("MATUG".to_string())),
@@ -1248,6 +1332,7 @@ mod tests {
                     speed: Some(Speed::Knots(463)),
                     altitude: Some(Altitude::FlightLevel(350)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Sid("ERIXU3B".to_string())),
                 Field15Element::Point(Point::Waypoint("ERIXU".to_string())),
@@ -1261,6 +1346,7 @@ mod tests {
                     speed: Some(Speed::Knots(461)),
                     altitude: Some(Altitude::FlightLevel(370)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Airway("UT18".to_string())),
                 Field15Element::Point(Point::Waypoint("BADAM".to_string())),
@@ -1283,6 +1369,7 @@ mod tests {
                     speed: Some(Speed::Knots(459)),
                     altitude: Some(Altitude::FlightLevel(320)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Waypoint("OBOKA".to_string())),
                 Field15Element::Connector(Connector::Airway("UZ29".to_string())),
@@ -1303,6 +1390,7 @@ mod tests {
                     speed: Some(Speed::Mach(0.79)),
                     altitude: Some(Altitude::FlightLevel(330)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
                 Field15Element::Point(Point::Waypoint("MALOT".to_string())),
@@ -1310,6 +1398,7 @@ mod tests {
                     speed: Some(Speed::Mach(0.79)),
                     altitude: Some(Altitude::FlightLevel(340)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
                 // Fix for the $PLACEHOLDER$ in test_long_complex_route
@@ -1323,6 +1412,7 @@ mod tests {
                     speed: Some(Speed::Knots(463)),
                     altitude: Some(Altitude::FlightLevel(360)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
                 Field15Element::Point(Point::Waypoint("YQX".to_string())),
@@ -1342,6 +1432,7 @@ mod tests {
                     speed: Some(Speed::Knots(450)),
                     altitude: Some(Altitude::MetricAltitude(825)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Coordinate((0., 0.))),
                 Field15Element::Connector(Connector::Airway("B9".to_string())),
@@ -1353,6 +1444,7 @@ mod tests {
                     speed: Some(Speed::Knots(350)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Point(Point::Coordinate((1., -1.))),
                 Field15Element::Point(Point::Coordinate((-1., -1.))),
@@ -1388,6 +1480,7 @@ mod tests {
                     speed: Some(Speed::Knots(490)),
                     altitude: Some(Altitude::FlightLevel(360)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Sid("ELCOB6B".to_string())),
                 Field15Element::Point(Point::Waypoint("ELCOB".to_string())),
@@ -1409,6 +1502,7 @@ mod tests {
                     speed: Some(Speed::Mach(0.84)),
                     altitude: Some(Altitude::FlightLevel(380)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Nat("NATD".to_string())),
                 Field15Element::Point(Point::Waypoint("HOIST".to_string())),
@@ -1416,6 +1510,7 @@ mod tests {
                     speed: Some(Speed::Knots(490)),
                     altitude: Some(Altitude::FlightLevel(380)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Airway("N756C".to_string())),
                 Field15Element::Point(Point::Waypoint("ANATI".to_string())),
@@ -1423,6 +1518,7 @@ mod tests {
                     speed: Some(Speed::Knots(441)),
                     altitude: Some(Altitude::FlightLevel(340)),
                     cruise_climb: false,
+                    altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
                 Field15Element::Point(Point::Waypoint("MIVAX".to_string())),
