@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Iterator, Literal
 
-import pandas as pd
+import pandas as pd  # type: ignore[import]
 
 from .core import (
     collection_add,

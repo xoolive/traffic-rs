@@ -24,7 +24,9 @@ cache-keys = [
   { file = "../Cargo.toml" },
   { file = "../**/*.rs" },
 ]
-dev-dependencies = [
+
+[dependency-groups]
+dev = [
   "mypy>=1.13.0",
   "pytest>=8.3.3",
   "ruff>=0.7.2",
