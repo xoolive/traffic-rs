@@ -21,9 +21,9 @@ fn main() {
                 "longitude" => navaids.values().map(|navaid| navaid.longitude).collect::<Vec<_>>(),
                 "type" => navaids.values().map(|navaid| navaid.r#type.clone()).collect::<Vec<_>>(),
             ) {
-                println!("{:?}", df);
+                println!("{df:?}");
             }
         }
-        Err(e) => eprintln!("Error parsing navaid file: {}", e),
+        Err(e) => eprintln!("Error parsing navaid file: {e}"),
     }
 }

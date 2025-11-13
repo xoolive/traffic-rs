@@ -5,23 +5,55 @@ edition = "2021"
 authors = ["Xavier Olive <git@xoolive.org>"]
 
 [dependencies]
-geo-types = "0.7"
-ndarray-linalg = { version = "0.17.0", features = ["openblas-static"] }
-numpy = "0.23.0"
-polars = { version = "0.46.0", features = ["lazy", "rolling_window"] }
-polars-core = "0.46.0"
+# geo-types = "0.7"
+ndarray-linalg = { version = "0.17.0", features = [
+    "openblas-static",
+], optional = true }
+numpy = { version = "0.23.0", optional = true }
+polars = { version = "0.46.0", features = [
+    "lazy",
+    "rolling_window",
+], optional = true }
+polars-core = { version = "0.46.0", optional = true }
 quick-xml = "0.37.2"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.145"
 zip = "2.2.2"
 
+[features]
+polars = ["dep:polars", "dep:polars-core", "dep:ndarray-linalg", "dep:numpy"]
+polars-linux = ["polars", "dep:openssl-sys"]
+polars-windows = ["polars", "dep:ndarray-linalg"]
+
 [target.'cfg(linux)'.dependencies]
-openssl-sys = { version = "0.9.103", features = ["vendored"] }
+openssl-sys = { version = "0.9.103", features = ["vendored"], optional = true }
 
 [target.'cfg(windows)'.dependencies]
 ndarray-linalg = { version = "0.17.0", features = [
     "openblas-static",
     "openblas-system",
-] }
+], optional = true }
 
 [dev-dependencies]
 jiff = "0.2.1"
+
+
+[[example]]
+name = "airport_heliport"
+required-features = ["polars"]
+
+[[example]]
+name = "designated_point"
+required-features = ["polars"]
+
+[[example]]
+name = "navaid"
+required-features = ["polars"]
+
+[[example]]
+name = "route"
+required-features = ["polars"]
+
+[[example]]
+name = "route_segment"
+required-features = ["polars"]

@@ -34,10 +34,7 @@ fn find_node<'a, R: std::io::BufRead>(
         }
         buf.clear();
     }
-    Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        "Node not found",
-    )))
+    Err(Box::new(std::io::Error::other("Node not found")))
 }
 
 fn read_text<R: std::io::BufRead>(

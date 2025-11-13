@@ -34,7 +34,7 @@ where
             if i > 0 {
                 write!(f, ", ")?;
             }
-            write!(f, "{}", elt)?;
+            write!(f, "{elt}")?;
         }
         write!(f, "]")
     }

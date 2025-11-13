@@ -22,9 +22,9 @@ fn main() {
                 "begin_position" => routes.values().map(|route| route.begin_position.clone()).collect::<Vec<_>>(),
                 "end_position" => routes.values().map(|route| route.end_position.clone()).collect::<Vec<_>>(),
             ) {
-                println!("{:?}", df);
+                println!("{df:?}");
             }
         }
-        Err(e) => eprintln!("Error parsing route file: {}", e),
+        Err(e) => eprintln!("Error parsing route file: {e}"),
     }
 }

@@ -21,9 +21,9 @@ fn main() {
                 "longitude" => point.values().map(|point| point.longitude).collect::<Vec<_>>(),
                 "type" => point.values().map(|point| point.r#type.clone()).collect::<Vec<_>>(),
             ) {
-                println!("{:?}", df);
+                println!("{df:?}");
             }
         }
-        Err(e) => eprintln!("Error parsing designated point file: {}", e),
+        Err(e) => eprintln!("Error parsing designated point file: {e}"),
     }
 }

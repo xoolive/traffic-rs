@@ -24,9 +24,9 @@ fn main() {
                 "city" => airports.values().map(|airport| airport.city.clone()).collect::<Vec<_>>(),
                 "type" => airports.values().map(|airport| airport.r#type.clone()).collect::<Vec<_>>(),
             ) {
-                println!("{:?}", df);
+                println!("{df:?}");
             }
         }
-        Err(e) => eprintln!("Error parsing airport file: {}", e),
+        Err(e) => eprintln!("Error parsing airport file: {e}"),
     }
 }

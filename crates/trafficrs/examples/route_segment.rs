@@ -27,9 +27,9 @@ fn main() {
                 "end_navaid" => route_segments.values().map(|segment| segment.end_navaid.clone()).collect::<Vec<_>>(),
                 "direction" => route_segments.values().map(|segment| segment.direction.clone()).collect::<Vec<_>>(),
             ) {
-                println!("{:?}", df);
+                println!("{df:?}");
             }
         }
-        Err(e) => eprintln!("Error parsing route segment file: {}", e),
+        Err(e) => eprintln!("Error parsing route segment file: {e}"),
     }
 }
