@@ -5,7 +5,18 @@ fn main() {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         let line = match line {
-            Ok(l) => l.trim().to_string(),
+            Ok(l) => {
+                let trimmed = l.trim();
+                let trimmed = trimmed
+                    .strip_prefix('"')
+                    .or_else(|| trimmed.strip_prefix('\''))
+                    .unwrap_or(trimmed);
+                let trimmed = trimmed
+                    .strip_suffix('"')
+                    .or_else(|| trimmed.strip_suffix('\''))
+                    .unwrap_or(trimmed);
+                trimmed.to_string()
+            }
             Err(_) => continue,
         };
         if line.is_empty() {

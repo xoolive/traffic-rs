@@ -1,18 +1,30 @@
-//! ICAO Field 15 Parser
+//! ## ICAO Field 15 Parser
 //!
-//! This module parses ICAO Field 15 (route) entries from flight plans.
+//! This module parses ICAO Field 15 entries from flight plans.
 //! Field 15 contains the route description including speed, altitude, waypoints,
 //! airways, and various modifiers.
 //!
 //! Based on ICAO DOC 4444 specifications and implements the three basic token types:
-//! - Points: PRPs, Lat/Lon, Point/Bearing/Distance, Aerodrome
+//! - Points: Published Route Points (PRP), lat/lon coordinates, Point/Bearing/Distance, Aerodrome
 //! - Connectors: ATS routes, SID, STAR, DCT, VFR/IFR, OAT/GAT
 //! - Modifiers: Speed and Level changes
+//!
+//! ## Usage
+//!
+//! ```rust
+//! use trafficrs::data::field15::{Field15Element, Field15Parser};
+//!
+//! let elements: Vec<Field15Element> = Field15Parser::parse(&line);
+//! match serde_json::to_string(&elements) {
+//!     Ok(json) => println!("{}", json),
+//!     Err(e) => eprintln!("JSON serialization error: {}", e),
+//! }
+//! ```
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Represents a single element in a Field 15 route
+/// A single element in a Field 15 ICAO route
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Field15Element {
@@ -24,20 +36,30 @@ pub enum Field15Element {
     Modifier(Modifier),
 }
 
-/// Types of points in a route
+/// A point in the route (waypoint, coordinate, or navaid)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Point {
-    /// Named waypoint or navaid (Published Route Point - PRP)
+    /// Named waypoint or navaid (Published Route Point)  
+    /// - Basic point: `[A-Z]{1,3}`  
+    /// - Point with 5 characters: `[A-Z]{5}`
     #[serde(rename = "waypoint")]
     Waypoint(String),
-    /// Latitude/longitude coordinate (degrees, e.g., (52.5, 13.4))
+    /// latitude/longitude coordinates in degrees, e.g., (52.5, 13.4)
+    /// - lat/lon in degrees: `[0-9]{2}[NS][0-9]{3}[EW]`
+    /// - lat/lon in DM: `[0-9]{4}[NS][0-9]{5}[EW]`
     #[serde(rename = "coords")]
-    Coordinate((f64, f64)),
-    /// Point/Bearing/Distance format (e.g., "POINT180060" or "5430N01020E180060")
+    Coordinates((f64, f64)),
+    /// Point/Bearing/Distance format, e.g., "POINT180060" or "5430N01020E180060"
+    /// - From PRP: `[A-Z]{1,5}[0-9]{6}`
+    /// - From lat/lon in degrees: `[0-9]{2}[NS][0-9]{3}[EW][0-9]{6}`
+    /// - From lat/lon in DM: `[0-9]{4}[NS][0-9]{5}[EW][0-9]{6}`
     #[serde(rename = "point_bearing_distance")]
     BearingDistance {
+        /// Base point (waypoint or coordinate)
         point: Box<Point>,
+        /// Bearing in degrees (000-360)
         bearing: u16,
+        /// Distance in nautical miles (001-999)
         distance: u16,
     },
     /// Aerodrome (ICAO location indicator) - 4 letter code
@@ -45,51 +67,75 @@ pub enum Point {
     Aerodrome(String),
 }
 
-/// Types of connectors between points
+/// A connector between points (airway or direct)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Connector {
-    /// Named airway (e.g., "UM184", "L738", "A308")
+    /// ATS routes (e.g., "UM184", "L738", "A308")
+    ///
+    /// They include A, B, G, H, J, L, M, N, P, Q, R, T, U routes
+    /// and upper airways like UN, UM, UL, UY, etc.
+    /// - `[A-Z]{1,2}[0-9]`
+    /// - `[A-Z][0-9]{1,3}[A-Z]`
+    /// - `[A-Z][0-9]{2,3}`
+    /// - `[A-Z]{3}[0-9]{3}` (Turkish type)
+    /// - `[A-Z]{3}[0-9]{1,2}`
+    /// - `[A-Z]{2}[0-9][A-Z]`
+    /// - `[A-Z]{2}[0-9]{2,3}`
+    /// - `[A-Z]{4}[0-9]{1,2}` (Russian air corridors)
+    /// - `[A-Z]{2}[0-9]{2,3}[A-Z]`
+    /// - `[A-Z][0-9]{3}[A-Z]`
     #[serde(rename = "airway")]
     Airway(String),
-    /// Direct routing
+    /// Direct routing (DCT)
     #[serde(rename = "DCT")]
     Direct,
-    /// SID (Standard Instrument Departure) - can be literal "SID" or a named SID
+    /// SID (Standard Instrument Departure), can be literal "SID" or a named SID
+    /// - `[A-Z]{3}[0-9]{1,2}[A-Z]`
+    /// - `[A-Z]{5}[0-9]{1,2}`
+    /// - `[A-Z]{4,6}[0-9][A-Z]`
+    /// - `[A-Z]{5}[0-9]{2}[A-Z]`
     #[serde(rename = "SID")]
     Sid(String),
-    /// STAR (Standard Arrival Route) - can be literal "STAR" or a named STAR
+    /// STAR (Standard Arrival Route), can be literal "STAR" or a named STAR
+    /// - `[A-Z]{3}[0-9]{1,2}[A-Z]`
+    /// - `[A-Z]{5}[0-9]{1,2}`
+    /// - `[A-Z]{4,6}[0-9][A-Z]`
+    /// - `[A-Z]{5}[0-9]{2}[A-Z]`
     #[serde(rename = "STAR")]
     Star(String),
-    /// VFR indicator - change to Visual Flight Rules
+    /// VFR indicator: change to Visual Flight Rules
     #[serde(rename = "VFR")]
     Vfr,
-    /// IFR indicator - change to Instrument Flight Rules
+    /// IFR indicator: change to Instrument Flight Rules
     #[serde(rename = "IFR")]
     Ifr,
-    /// OAT indicator - change to Operational Air Traffic (military)
+    /// OAT indicator: change to Operational Air Traffic (military)
     #[serde(rename = "OAT")]
     Oat,
-    /// GAT indicator - change to General Air Traffic
+    /// GAT indicator: change to General Air Traffic
     #[serde(rename = "GAT")]
     Gat,
-    /// IFPSTOP - CFMU IFPS special: stop IFR handling
+    /// IFPSTOP: CFMU IFPS special, stop IFR handling
     #[serde(rename = "IFPSTOP")]
     IfpStop,
-    /// IFPSTART - CFMU IFPS special: start IFR handling
+    /// IFPSTART: CFMU IFPS special, start IFR handling
     #[serde(rename = "IFPSTART")]
     IfpStart,
     /// Stay at current position with optional time
     #[serde(rename = "STAY")]
     StayTime { minutes: Option<u16> },
-    /// NAT track (NATA-NATZ, NAT1-NAT9, NATX, etc.)
+    /// North Atlantic Track (NAT), e.g. NATA-NATZ, NAT1-NAT9, NATX, etc.
+    /// - `NAT[A-Z]`
+    /// - `NAT[A-Z][0-9]`
     #[serde(rename = "NAT")]
     Nat(String),
-    /// PTS track (PTS0-PTS9, PTSA-PTSZ)
+    /// Polar Track Structure (PTS) track, e.g. PTS0-PTS9, PTSA-PTSZ
+    /// - `PTS[0-9]` or `PTS[A-Z]`
     #[serde(rename = "PTS")]
     Pts(String),
 }
 
-/// Modifiers that change flight parameters
+///  A modifier that changes flight parameters
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Modifier {
     /// Speed (e.g., "N0456" for 456 knots, "M079" for Mach 0.79, "K0893" for 893 km/h)
@@ -152,7 +198,7 @@ impl fmt::Display for Point {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Point::Waypoint(s) => write!(f, "Waypoint({})", s),
-            Point::Coordinate((lat, lon)) => write!(f, "Coordinate({:.5},{:.5})", lat, lon),
+            Point::Coordinates((lat, lon)) => write!(f, "Coordinate({:.5},{:.5})", lat, lon),
             Point::BearingDistance {
                 point,
                 bearing,
@@ -227,7 +273,7 @@ impl fmt::Display for Altitude {
     }
 }
 
-/// Parser for ICAO Field 15 route strings
+/// A parser for ICAO Field 15 route strings
 pub struct Field15Parser;
 
 impl Field15Parser {
@@ -578,7 +624,7 @@ impl Field15Parser {
         // Check if it's a coordinate - must be checked before bearing/distance
         if Self::is_coordinate(token) {
             if let Some(coord) = Self::parse_coordinate(token) {
-                return Some(Point::Coordinate(coord));
+                return Some(Point::Coordinates(coord));
             } else {
                 return None;
             }
@@ -600,7 +646,7 @@ impl Field15Parser {
                         ) {
                             if bearing <= 360 && distance <= 999 {
                                 return Some(Point::BearingDistance {
-                                    point: Box::new(Point::Coordinate(coord)),
+                                    point: Box::new(Point::Coordinates(coord)),
                                     bearing,
                                     distance,
                                 });
@@ -918,7 +964,7 @@ mod tests {
             distance,
         })) = bearing_dist
         {
-            assert_eq!(**point, Point::Coordinate((-2.0, -1.0)));
+            assert_eq!(**point, Point::Coordinates((-2.0, -1.0)));
             assert_eq!(*bearing, 180);
             assert_eq!(*distance, 60);
         }
@@ -970,22 +1016,22 @@ mod tests {
                     cruise_climb: false,
                     altitude_cruise_to: None
                 }),
-                Field15Element::Point(Point::Coordinate((0., 0.))),
+                Field15Element::Point(Point::Coordinates((0., 0.))),
                 Field15Element::Connector(Connector::Airway("B9".to_string())),
-                Field15Element::Point(Point::Coordinate((0., 1.))),
+                Field15Element::Point(Point::Coordinates((0., 1.))),
                 Field15Element::Connector(Connector::Vfr),
                 Field15Element::Connector(Connector::Ifr),
-                Field15Element::Point(Point::Coordinate((0., -1.))),
+                Field15Element::Point(Point::Coordinates((0., -1.))),
                 Field15Element::Modifier(Modifier {
                     speed: Some(Speed::Knots(350)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
                     altitude_cruise_to: None
                 }),
-                Field15Element::Point(Point::Coordinate((1., -1.))),
-                Field15Element::Point(Point::Coordinate((-1., -1.))),
+                Field15Element::Point(Point::Coordinates((1., -1.))),
+                Field15Element::Point(Point::Coordinates((-1., -1.))),
                 Field15Element::Point(Point::BearingDistance {
-                    point: Box::new(Point::Coordinate((-2., -1.))),
+                    point: Box::new(Point::Coordinates((-2., -1.))),
                     bearing: 180,
                     distance: 60,
                 }),
@@ -1278,11 +1324,11 @@ mod tests {
                     altitude_cruise_to: None
                 }),
                 Field15Element::Connector(Connector::Direct),
-                Field15Element::Point(Point::Coordinate((62., -10.))),
-                Field15Element::Point(Point::Coordinate((63., -20.))),
-                Field15Element::Point(Point::Coordinate((63., -30.))),
-                Field15Element::Point(Point::Coordinate((64., -40.))),
-                Field15Element::Point(Point::Coordinate((64., -50.))),
+                Field15Element::Point(Point::Coordinates((62., -10.))),
+                Field15Element::Point(Point::Coordinates((63., -20.))),
+                Field15Element::Point(Point::Coordinates((63., -30.))),
+                Field15Element::Point(Point::Coordinates((64., -40.))),
+                Field15Element::Point(Point::Coordinates((64., -50.))),
             ]
         );
     }
@@ -1402,10 +1448,10 @@ mod tests {
                 }),
                 Field15Element::Connector(Connector::Direct),
                 // Fix for the $PLACEHOLDER$ in test_long_complex_route
-                Field15Element::Point(Point::Coordinate((54., -20.))),
-                Field15Element::Point(Point::Coordinate((55., -30.))),
-                Field15Element::Point(Point::Coordinate((54., -40.))),
-                Field15Element::Point(Point::Coordinate((51., -50.))),
+                Field15Element::Point(Point::Coordinates((54., -20.))),
+                Field15Element::Point(Point::Coordinates((55., -30.))),
+                Field15Element::Point(Point::Coordinates((54., -40.))),
+                Field15Element::Point(Point::Coordinates((51., -50.))),
                 Field15Element::Connector(Connector::Direct),
                 Field15Element::Point(Point::Waypoint("ALLRY".to_string())),
                 Field15Element::Modifier(Modifier {
@@ -1434,22 +1480,22 @@ mod tests {
                     cruise_climb: false,
                     altitude_cruise_to: None
                 }),
-                Field15Element::Point(Point::Coordinate((0., 0.))),
+                Field15Element::Point(Point::Coordinates((0., 0.))),
                 Field15Element::Connector(Connector::Airway("B9".to_string())),
-                Field15Element::Point(Point::Coordinate((0., 1.))),
+                Field15Element::Point(Point::Coordinates((0., 1.))),
                 Field15Element::Connector(Connector::Vfr),
                 Field15Element::Connector(Connector::Ifr),
-                Field15Element::Point(Point::Coordinate((0., -1.))),
+                Field15Element::Point(Point::Coordinates((0., -1.))),
                 Field15Element::Modifier(Modifier {
                     speed: Some(Speed::Knots(350)),
                     altitude: Some(Altitude::FlightLevel(100)),
                     cruise_climb: false,
                     altitude_cruise_to: None
                 }),
-                Field15Element::Point(Point::Coordinate((1., -1.))),
-                Field15Element::Point(Point::Coordinate((-1., -1.))),
+                Field15Element::Point(Point::Coordinates((1., -1.))),
+                Field15Element::Point(Point::Coordinates((-1., -1.))),
                 Field15Element::Point(Point::BearingDistance {
-                    point: Box::new(Point::Coordinate((-2., -1.))),
+                    point: Box::new(Point::Coordinates((-2., -1.))),
                     bearing: 180,
                     distance: 60,
                 }),
