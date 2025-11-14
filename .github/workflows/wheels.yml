@@ -41,10 +41,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - name: Install pkg-config and OpenSSL by apt
-        run: |
-          sudo apt update
-          sudo apt install -y pkg-config libssl-dev
+      # - name: Install pkg-config and OpenSSL by apt
+      #   run: |
+      #     sudo apt update
+      #     sudo apt install -y pkg-config libssl-dev
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -77,10 +77,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - name: Install pkg-config and OpenSSL by apt
-        run: |
-          sudo apt update
-          sudo apt install -y pkg-config libssl-dev
+      # - name: Install pkg-config and OpenSSL by apt
+      #   run: |
+      #     sudo apt update
+      #     sudo apt install -y pkg-config libssl-dev
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -108,27 +108,27 @@ jobs:
             triplet: x86-windows-static
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/cache@v4
-        with:
-          path: ./vcpkg
-          key: vcpkg-openblas
-      - name: Install vcpkg
-        run: |
-          git clone https://github.com/Microsoft/vcpkg.git --depth 1
-          cd vcpkg
-          ./bootstrap-vcpkg.bat
-      - name: Install OpenBLAS by vcpkg
-        run: |
-          ./vcpkg/vcpkg.exe install openblas:${{ matrix.platform.triplet }}
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: ./vcpkg
+      #     key: vcpkg-openblas
+      # - name: Install vcpkg
+      #   run: |
+      #     git clone https://github.com/Microsoft/vcpkg.git --depth 1
+      #     cd vcpkg
+      #     ./bootstrap-vcpkg.bat
+      # - name: Install OpenBLAS by vcpkg
+      #   run: |
+      #     ./vcpkg/vcpkg.exe install openblas:${{ matrix.platform.triplet }}
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
-        env:
-          VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-          RUSTFLAGS: "-C target-feature=+crt-static"
+        # env:
+        #   VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+        #   RUSTFLAGS: "-C target-feature=+crt-static"
         with:
           working-directory: python
           target: ${{ matrix.platform.target }}

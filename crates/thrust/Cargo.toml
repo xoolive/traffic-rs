@@ -9,12 +9,9 @@ name = "thrust"
 path = "src/lib.rs"
 
 [dependencies]
-# geo-types = "0.7"
-ndarray-linalg = { version = "0.17.0", features = [
-    "openblas-static",
-], optional = true }
-numpy = { version = "0.23.0", optional = true }
-polars = { version = "0.46.0", features = [
+ndarray-linalg = { version = "0.17.0", optional = true }
+numpy = { version = "0.27.0", optional = true }
+polars = { version = "0.51.0", features = [
     "lazy",
     "rolling_window",
 ], optional = true }
@@ -24,18 +21,12 @@ serde_json = "1.0.145"
 zip = "6.0.0"
 
 [features]
+default = []
 polars = ["dep:polars", "dep:ndarray-linalg", "dep:numpy"]
-polars-linux = ["polars", "dep:openssl-sys"]
-polars-windows = ["polars", "dep:ndarray-linalg"]
 
-[target.'cfg(linux)'.dependencies]
-openssl-sys = { version = "0.9.103", features = ["vendored"], optional = true }
-
-[target.'cfg(windows)'.dependencies]
-ndarray-linalg = { version = "0.18.0", features = [
-    "openblas-static",
-    "openblas-system",
-], optional = true }
+# ndarray-linalg backends
+openblas = ["ndarray-linalg/openblas"]
+netlib = ["ndarray-linalg/netlib"]
 
 [dev-dependencies]
 jiff = "0.2.1"

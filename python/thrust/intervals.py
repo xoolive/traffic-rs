@@ -5,7 +5,7 @@ from typing import Any, Iterator, Literal
 
 import pandas as pd  # type: ignore[import]
 
-from .core import (
+from .core.intervals import (
     collection_add,
     collection_addi,
     collection_and,

@@ -15,17 +15,21 @@ exclude = [
     "**/*.pyc",
 ]
 
+[features]
+default = []
+
+# ndarray-linalg backends
+openblas = ["traffic-thrust/openblas"]
+netlib = ["traffic-thrust/netlib"]
 
 [lib]
-name = "thrust"
+name = "thrust_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-numpy = "0.23.0"
-polars = { version = "0.46.0", features = ["lazy", "rolling_window"] }
-# polars-core = "0.52.0"
-pyo3 = "0.23.4"
-pyo3-polars = "0.20.0"
+numpy = "0.27.0"
+polars = { version = "0.51.0", features = ["lazy", "rolling_window"] }
+pyo3 = "0.27.1"
 traffic-thrust = { version = "0.1.0", path = "../crates/thrust", features = [
     "polars",
 ] }
