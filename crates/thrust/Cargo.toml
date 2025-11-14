@@ -10,22 +10,21 @@ path = "src/lib.rs"
 
 [dependencies]
 # geo-types = "0.7"
-ndarray-linalg = { version = "0.18.0", features = [
+ndarray-linalg = { version = "0.17.0", features = [
     "openblas-static",
 ], optional = true }
-numpy = { version = "0.26.0", optional = true }
-polars = { version = "0.52.0", features = [
+numpy = { version = "0.23.0", optional = true }
+polars = { version = "0.46.0", features = [
     "lazy",
     "rolling_window",
 ], optional = true }
-polars-core = { version = "0.52.0", optional = true }
 quick-xml = "0.38.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.145"
 zip = "6.0.0"
 
 [features]
-polars = ["dep:polars", "dep:polars-core", "dep:ndarray-linalg", "dep:numpy"]
+polars = ["dep:polars", "dep:ndarray-linalg", "dep:numpy"]
 polars-linux = ["polars", "dep:openssl-sys"]
 polars-windows = ["polars", "dep:ndarray-linalg"]
 

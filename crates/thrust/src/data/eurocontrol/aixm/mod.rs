@@ -37,15 +37,12 @@ fn find_node<'a, R: std::io::BufRead>(
     Err(Box::new(std::io::Error::other("Node not found")))
 }
 
-fn read_text<R: std::io::BufRead>(
-    reader: &mut Reader<R>,
-    end: QName,
-) -> Result<String, Box<dyn std::error::Error>> {
+fn read_text<R: std::io::BufRead>(reader: &mut Reader<R>, end: QName) -> Result<String, Box<dyn std::error::Error>> {
     let mut buf = Vec::new();
     let mut text = String::new();
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Text(e)) => text.push_str(&e.unescape()?),
+            Ok(Event::Text(e)) => text.push_str(&e.decode()?),
             Ok(Event::End(e)) if e.name() == end => break,
             Ok(Event::Eof) => break,
             Err(e) => return Err(Box::new(e)),

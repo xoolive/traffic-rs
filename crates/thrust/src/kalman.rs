@@ -1,10 +1,9 @@
-use ndarray_linalg::solve::Inverse;
+use ndarray_linalg::Inverse;
 use numpy::ndarray::{s, Array, Array2, Array3};
 use polars::prelude::SeriesOpsTime;
 use polars::prelude::*;
 
-type KalmanOutput =
-    PolarsResult<(Array2<f64>, Array2<f64>, Array3<f64>, Array3<f64>)>;
+type KalmanOutput = PolarsResult<(Array2<f64>, Array2<f64>, Array3<f64>, Array3<f64>)>;
 
 pub fn kalman6d(df: DataFrame) -> KalmanOutput {
     let (n_rows, n_cols) = df.shape();
@@ -15,11 +14,7 @@ pub fn kalman6d(df: DataFrame) -> KalmanOutput {
     // Initialize all results arrays
     let mut x_mes: Array2<f64> = Array2::zeros((n_rows, n_cols));
 
-    for (j, col) in df
-        .columns(["x", "y", "z", "dx", "dy", "dz"])?
-        .into_iter()
-        .enumerate()
-    {
+    for (j, col) in df.columns(["x", "y", "z", "dx", "dy", "dz"])?.into_iter().enumerate() {
         for (i, value) in col.f64()?.into_iter().enumerate() {
             x_mes[(i, j)] = value.map_or(1e24, |v| v);
         }
@@ -88,16 +83,13 @@ pub fn kalman6d(df: DataFrame) -> KalmanOutput {
         .std(1)
         .unwrap_or(0.);
 
-    let r_diag =
-        Array::from_vec(vec![std_x, std_y, std_z, std_dx, std_dy, std_dz]);
-    let r_matrix: Array2<f64> =
-        Array2::from_diag(&r_diag) * Array2::from_diag(&r_diag);
+    let r_diag = Array::from_vec(vec![std_x, std_y, std_z, std_dx, std_dy, std_dz]);
+    let r_matrix: Array2<f64> = Array2::from_diag(&r_diag) * Array2::from_diag(&r_diag);
 
     // Definition of the Q matrix
 
     let q_diag = Array::from_vec(vec![0.25, 0.25, 0.25, 1., 1., 1.]);
-    let mut q_matrix: Array2<f64> =
-        1e-1 * Array2::from_diag(&q_diag) * &r_matrix;
+    let mut q_matrix: Array2<f64> = 1e-1 * Array2::from_diag(&q_diag) * &r_matrix;
     for i in 0..3 {
         q_matrix[(i, i + 3)] += 0.5 * q_matrix[(i + 3, i + 3)];
         q_matrix[(i + 3, i)] += 0.5 * q_matrix[(i + 3, i + 3)];
@@ -126,25 +118,19 @@ pub fn kalman6d(df: DataFrame) -> KalmanOutput {
             .slice_mut(s![i, ..])
             .assign(&a_matrix.dot(&x_cor.slice(s![i - 1, ..])));
 
-        p_pre.slice_mut(s![i, .., ..]).assign(
-            &(a_matrix
-                .dot(&p_cor.slice(s![i - 1, .., ..]))
-                .dot(&a_matrix.t())
-                + &q_matrix),
-        );
+        p_pre
+            .slice_mut(s![i, .., ..])
+            .assign(&(a_matrix.dot(&p_cor.slice(s![i - 1, .., ..])).dot(&a_matrix.t()) + &q_matrix));
 
         let mut h_matrix = identity.clone();
 
         // Innovation
         let mut nu = &x_mes.slice(s![i, ..]) - &x_pre.slice(s![i, ..]);
-        let s_matrix =
-            h_matrix.dot(&p_pre.slice(s![i, .., ..])).dot(&h_matrix.t())
-                + &r_matrix;
+        let s_matrix: Array2<f64> = h_matrix.dot(&p_pre.slice(s![i, .., ..])).dot(&h_matrix.t()) + &r_matrix;
 
-        let mut s_inverse = s_matrix.inv().unwrap();
-        if nu.t().dot(&s_inverse).dot(&nu)
-            > reject_sigma * reject_sigma * n_cols as f64
-        {
+        // Explicitly annotate type to help compiler resolve trait
+        let mut s_inverse: Array2<f64> = s_matrix.inv().unwrap();
+        if nu.t().dot(&s_inverse).dot(&nu) > reject_sigma * reject_sigma * n_cols as f64 {
             let x = s_inverse.dot(&nu) * &nu;
             for (j, &val) in x.iter().enumerate() {
                 if val > reject_sigma.powi(2) {
@@ -153,26 +139,21 @@ pub fn kalman6d(df: DataFrame) -> KalmanOutput {
                     h_matrix[(j, j)] = 0.;
                 }
             }
-            let s_matrix =
-                h_matrix.dot(&p_pre.slice(s![i, .., ..])).dot(&h_matrix.t())
-                    + &r_matrix;
+            // Recompute s_matrix since we need it again
+            let s_matrix: Array2<f64> = h_matrix.dot(&p_pre.slice(s![i, .., ..])).dot(&h_matrix.t()) + &r_matrix;
             s_inverse = s_matrix.inv().unwrap();
         }
 
-        let k_gain = p_pre
-            .slice(s![i, .., ..])
-            .dot(&h_matrix.t())
-            .dot(&s_inverse);
+        let k_gain = p_pre.slice(s![i, .., ..]).dot(&h_matrix.t()).dot(&s_inverse);
 
         x_cor
             .slice_mut(s![i, ..])
             .assign(&(&x_pre.slice(s![i, ..]) + k_gain.dot(&nu)));
 
         let imkh = &identity - k_gain.dot(&h_matrix);
-        p_cor.slice_mut(s![i, .., ..]).assign(
-            &(imkh.dot(&p_pre.slice(s![i, .., ..])).dot(&imkh.t())
-                + k_gain.dot(&r_matrix).dot(&k_gain.t())),
-        )
+        p_cor
+            .slice_mut(s![i, .., ..])
+            .assign(&(imkh.dot(&p_pre.slice(s![i, .., ..])).dot(&imkh.t()) + k_gain.dot(&r_matrix).dot(&k_gain.t())))
     }
 
     Ok((x_pre, x_cor, p_pre, p_cor))
