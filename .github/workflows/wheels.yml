@@ -38,7 +38,7 @@ jobs:
           #   target: ppc64le
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
       - name: Install pkg-config and OpenSSL by apt
@@ -74,7 +74,7 @@ jobs:
             target: armv7
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
       - name: Install pkg-config and OpenSSL by apt
@@ -120,7 +120,7 @@ jobs:
       - name: Install OpenBLAS by vcpkg
         run: |
           ./vcpkg/vcpkg.exe install openblas:${{ matrix.platform.triplet }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
           architecture: ${{ matrix.platform.target }}
@@ -151,7 +151,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
       - name: Build wheels
