@@ -32,11 +32,7 @@ pub fn parse_airport_heliport_zip_file<P: AsRef<Path>>(
         let file = archive.by_index(i)?;
         if file.name().ends_with(".BASELINE") {
             let mut reader = Reader::from_reader(BufReader::new(file));
-            while let Ok(_node) = find_node(
-                &mut reader,
-                vec![QName(b"aixm:AirportHeliport")],
-                None,
-            ) {
+            while let Ok(_node) = find_node(&mut reader, vec![QName(b"aixm:AirportHeliport")], None) {
                 let airport = parse_airport_heliport(&mut reader)?;
                 airports.insert(airport.identifier.clone(), airport);
             }
@@ -79,22 +75,14 @@ fn parse_airport_heliport<R: std::io::BufRead>(
 
             QName(b"aixm:servedCity") => {
                 find_node(reader, vec![QName(b"aixm:City")], Some(node))?;
-                find_node(
-                    reader,
-                    vec![QName(b"aixm:name")],
-                    Some(QName(b"aixm:City")),
-                )?;
+                find_node(reader, vec![QName(b"aixm:name")], Some(QName(b"aixm:City")))?;
                 airport.city = Some(read_text(reader, QName(b"aixm:name"))?);
             }
             QName(b"aixm:controlType") => {
                 airport.r#type = read_text(reader, node)?;
             }
             QName(b"aixm:ElevatedPoint") => {
-                while let Ok(node) = find_node(
-                    reader,
-                    vec![QName(b"gml:pos"), QName(b"aixm:elevation")],
-                    Some(node),
-                ) {
+                while let Ok(node) = find_node(reader, vec![QName(b"gml:pos"), QName(b"aixm:elevation")], Some(node)) {
                     match node {
                         QName(b"gml:pos") => {
                             let coords: Vec<f64> = read_text(reader, node)?
@@ -105,8 +93,7 @@ fn parse_airport_heliport<R: std::io::BufRead>(
                             airport.longitude = coords[1];
                         }
                         QName(b"aixm:elevation") => {
-                            airport.altitude =
-                                read_text(reader, node)?.parse()?;
+                            airport.altitude = read_text(reader, node)?.parse()?;
                         }
                         _ => (),
                     }

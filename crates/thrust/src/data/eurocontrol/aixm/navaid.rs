@@ -18,9 +18,7 @@ pub struct Navaid {
     pub description: Option<String>,
 }
 
-pub fn parse_navaid_zip_file<P: AsRef<Path>>(
-    path: P,
-) -> Result<HashMap<String, Navaid>, Box<dyn std::error::Error>> {
+pub fn parse_navaid_zip_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Navaid>, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let mut archive = ZipArchive::new(file)?;
     let mut navaids = HashMap::new();
@@ -30,9 +28,7 @@ pub fn parse_navaid_zip_file<P: AsRef<Path>>(
         if file.name().ends_with(".BASELINE") {
             let mut reader = Reader::from_reader(BufReader::new(file));
 
-            while let Ok(_node) =
-                find_node(&mut reader, vec![QName(b"aixm:Navaid")], None)
-            {
+            while let Ok(_node) = find_node(&mut reader, vec![QName(b"aixm:Navaid")], None) {
                 let navaid = parse_navaid(&mut reader)?;
                 navaids.insert(navaid.identifier.clone(), navaid);
             }
@@ -42,9 +38,7 @@ pub fn parse_navaid_zip_file<P: AsRef<Path>>(
     Ok(navaids)
 }
 
-fn parse_navaid<R: std::io::BufRead>(
-    reader: &mut Reader<R>,
-) -> Result<Navaid, Box<dyn std::error::Error>> {
+fn parse_navaid<R: std::io::BufRead>(reader: &mut Reader<R>) -> Result<Navaid, Box<dyn std::error::Error>> {
     let mut navaid = Navaid::default();
 
     while let Ok(node) = find_node(
@@ -72,9 +66,7 @@ fn parse_navaid<R: std::io::BufRead>(
                 navaid.description = Some(read_text(reader, node)?);
             }
             QName(b"aixm:ElevatedPoint") => {
-                while let Ok(node) =
-                    find_node(reader, vec![QName(b"gml:pos")], Some(node))
-                {
+                while let Ok(node) = find_node(reader, vec![QName(b"gml:pos")], Some(node)) {
                     let coords: Vec<f64> = read_text(reader, node)?
                         .split_whitespace()
                         .map(|s| s.parse().unwrap())

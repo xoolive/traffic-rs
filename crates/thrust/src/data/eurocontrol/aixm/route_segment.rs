@@ -36,12 +36,9 @@ pub fn parse_route_segment_zip_file<P: AsRef<Path>>(
         if file.name().ends_with(".BASELINE") {
             let mut reader = Reader::from_reader(BufReader::new(file));
 
-            while let Ok(_node) =
-                find_node(&mut reader, vec![QName(b"aixm:RouteSegment")], None)
-            {
+            while let Ok(_node) = find_node(&mut reader, vec![QName(b"aixm:RouteSegment")], None) {
                 let route_segment = parse_route_segment(&mut reader)?;
-                route_segments
-                    .insert(route_segment.identifier.clone(), route_segment);
+                route_segments.insert(route_segment.identifier.clone(), route_segment);
             }
         }
     }

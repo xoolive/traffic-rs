@@ -31,11 +31,7 @@ pub fn parse_designated_point_zip_file<P: AsRef<Path>>(
         if file.name().ends_with(".BASELINE") {
             let mut reader = Reader::from_reader(BufReader::new(file));
 
-            while let Ok(_nome) = find_node(
-                &mut reader,
-                vec![QName(b"aixm:DesignatedPoint")],
-                None,
-            ) {
+            while let Ok(_nome) = find_node(&mut reader, vec![QName(b"aixm:DesignatedPoint")], None) {
                 let point = parse_designated_point(&mut reader)?;
                 points.insert(point.identifier.clone(), point);
             }
@@ -75,9 +71,7 @@ fn parse_designated_point<R: std::io::BufRead>(
                 point.r#type = read_text(reader, node)?;
             }
             QName(b"aixm:Point") => {
-                while let Ok(node) =
-                    find_node(reader, vec![QName(b"gml:pos")], Some(node))
-                {
+                while let Ok(node) = find_node(reader, vec![QName(b"gml:pos")], Some(node)) {
                     let coords: Vec<f64> = read_text(reader, node)?
                         .split_whitespace()
                         .map(|s| s.parse().unwrap())

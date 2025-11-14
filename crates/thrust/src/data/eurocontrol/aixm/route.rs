@@ -20,9 +20,7 @@ pub struct Route {
     pub end_position: Option<String>,
 }
 
-pub fn parse_route_zip_file<P: AsRef<Path>>(
-    path: P,
-) -> Result<HashMap<String, Route>, Box<dyn std::error::Error>> {
+pub fn parse_route_zip_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Route>, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let mut archive = ZipArchive::new(file)?;
     let mut routes = HashMap::new();
@@ -32,9 +30,7 @@ pub fn parse_route_zip_file<P: AsRef<Path>>(
         if file.name().ends_with(".BASELINE") {
             let mut reader = Reader::from_reader(BufReader::new(file));
 
-            while let Ok(_node) =
-                find_node(&mut reader, vec![QName(b"aixm:Route")], None)
-            {
+            while let Ok(_node) = find_node(&mut reader, vec![QName(b"aixm:Route")], None) {
                 let route = parse_route(&mut reader)?;
                 routes.insert(route.identifier.clone(), route);
             }
@@ -44,9 +40,7 @@ pub fn parse_route_zip_file<P: AsRef<Path>>(
     Ok(routes)
 }
 
-fn parse_route<R: std::io::BufRead>(
-    reader: &mut Reader<R>,
-) -> Result<Route, Box<dyn std::error::Error>> {
+fn parse_route<R: std::io::BufRead>(reader: &mut Reader<R>) -> Result<Route, Box<dyn std::error::Error>> {
     let mut route = Route::default();
 
     while let Ok(node) = find_node(

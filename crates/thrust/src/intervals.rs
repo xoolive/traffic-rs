@@ -384,10 +384,7 @@ mod tests {
             start: "2024-01-20T12:00:00Z".parse().expect("error date"),
             stop: "2024-01-20T13:00:00Z".parse().expect("error date"),
         };
-        assert_eq!(
-            i_dt.duration().compare(1.hour()).unwrap(),
-            std::cmp::Ordering::Equal
-        );
+        assert_eq!(i_dt.duration().compare(1.hour()).unwrap(), std::cmp::Ordering::Equal);
         assert_eq!(
             i_dt.shift(5.hour()).duration().compare(1.hour()).unwrap(),
             std::cmp::Ordering::Equal
@@ -426,10 +423,7 @@ mod tests {
     #[test]
     fn intervals_sub() {
         assert_eq!(format!("{:}", &(I1 - I2)), "[[0, 1]]");
-        assert_eq!(
-            format!("{:}", &(Interval { start: 0, stop: 2 } - I2)),
-            "[[0, 1]]"
-        );
+        assert_eq!(format!("{:}", &(Interval { start: 0, stop: 2 } - I2)), "[[0, 1]]");
         assert_eq!(format!("{:}", &((I1 + I2 + I3) - I2)), "[[0, 1], [2, 3]]");
         assert_eq!(format!("{:}", &((I1 + I2) - (I3 + I2))), "[[0, 1]]");
         assert_eq!(
