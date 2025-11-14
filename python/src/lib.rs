@@ -1,15 +1,12 @@
+use ::thrust::intervals::{Interval, IntervalCollection};
+use ::thrust::kalman::kalman6d;
 use numpy::{PyArray1, PyArray2, PyArray3, PyReadonlyArray1};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::IntoPyDict;
 use pyo3::{prelude::*, types::PyDict};
 use pyo3_polars::PyDataFrame;
-use trafficrs::intervals::{Interval, IntervalCollection};
-use trafficrs::kalman::kalman6d;
 
-fn get_ic(
-    start: PyReadonlyArray1<i64>,
-    stop: PyReadonlyArray1<i64>,
-) -> IntervalCollection<i64> {
+fn get_ic(start: PyReadonlyArray1<i64>, stop: PyReadonlyArray1<i64>) -> IntervalCollection<i64> {
     let size1 = start.len().unwrap();
     let size2 = stop.len().unwrap();
     let size = std::cmp::min(size1, size2);
@@ -25,13 +22,7 @@ fn get_ic(
 }
 
 #[pyfunction]
-fn interval_and(
-    py: Python,
-    start1: i64,
-    stop1: i64,
-    start2: i64,
-    stop2: i64,
-) -> PyResult<Bound<PyDict>> {
+fn interval_and(py: Python, start1: i64, stop1: i64, start2: i64, stop2: i64) -> PyResult<Bound<PyDict>> {
     let left = Interval {
         start: start1,
         stop: stop1,
@@ -42,9 +33,7 @@ fn interval_and(
     };
     let res = match &left & &right {
         None => [("empty", true)].into_py_dict(py),
-        Some(Interval { start, stop }) => {
-            [("start", start), ("stop", stop)].into_py_dict(py)
-        }
+        Some(Interval { start, stop }) => [("start", start), ("stop", stop)].into_py_dict(py),
     };
     res
 }
@@ -94,13 +83,7 @@ fn collection_andi<'a>(
 }
 
 #[pyfunction]
-fn interval_add(
-    py: Python,
-    start1: i64,
-    stop1: i64,
-    start2: i64,
-    stop2: i64,
-) -> PyResult<Bound<PyDict>> {
+fn interval_add(py: Python, start1: i64, stop1: i64, start2: i64, stop2: i64) -> PyResult<Bound<PyDict>> {
     let left = Interval {
         start: start1,
         stop: stop1,
@@ -166,13 +149,7 @@ fn collection_addi<'a>(
 }
 
 #[pyfunction]
-fn interval_sub(
-    py: Python,
-    start1: i64,
-    stop1: i64,
-    start2: i64,
-    stop2: i64,
-) -> PyResult<Bound<PyDict>> {
+fn interval_sub(py: Python, start1: i64, stop1: i64, start2: i64, stop2: i64) -> PyResult<Bound<PyDict>> {
     let left = Interval {
         start: start1,
         stop: stop1,

@@ -1,13 +1,26 @@
 # %%
 import timeit
 
+import pandas as pd
 from cartes.crs import EuroPP  # type: ignore
+from traffic.algorithms.filters import ProcessXYZFilterBase
 from traffic.algorithms.filters.kalman import KalmanFilter6D
 from traffic.data.samples import noisy_landing
 
-from thrust.kalman import KalmanFilter6DRust
+from thrust.kalman import kalman6d
 
-# %%
+
+class KalmanFilter6DRust(ProcessXYZFilterBase):
+    def apply(self, data: pd.DataFrame) -> pd.DataFrame:
+        df = self.preprocess(data)
+        res = kalman6d(df)
+
+        filtered = pd.DataFrame(
+            res["x_cor"],
+            columns=["x", "y", "z", "dx", "dy", "dz"],
+        )
+
+        return data.assign(**self.postprocess(filtered))
 
 
 def test_correctness() -> None:

@@ -1,5 +1,5 @@
 use std::io::{self, BufRead};
-use trafficrs::data::field15::{Field15Element, Field15Parser};
+use thrust::data::field15::{Field15Element, Field15Parser};
 
 fn main() {
     let stdin = io::stdin();

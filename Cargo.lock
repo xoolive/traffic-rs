@@ -2844,6 +2844,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "thrust-py"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "numpy",
+ "polars",
+ "polars-core",
+ "pyo3",
+ "pyo3-polars",
+ "traffic-thrust",
+]
+
+[[package]]
 name = "time"
 version = "0.3.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2917,19 +2930,6 @@ dependencies = [
 
 [[package]]
 name = "traffic-thrust"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "numpy",
- "polars",
- "polars-core",
- "pyo3",
- "pyo3-polars",
- "trafficrs",
-]
-
-[[package]]
-name = "trafficrs"
 version = "0.1.0"
 dependencies = [
  "jiff",

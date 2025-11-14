@@ -1,7 +1,7 @@
 use polars::prelude::*;
 use std::env;
 use std::path::Path;
-use trafficrs::data::eurocontrol::aixm::route_segment::parse_route_segment_zip_file;
+use thrust::data::eurocontrol::aixm::route_segment::parse_route_segment_zip_file;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

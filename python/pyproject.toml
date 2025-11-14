@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "thrust"
 requires-python = ">=3.10"
-dependencies = ["pandas>=2.2.0", "polars>=1.4.1", "traffic>=2.12"]
+dependencies = ["pandas>=2.2.0", "polars>=1.4.1"]
 classifiers = [
   "Programming Language :: Rust",
   "Programming Language :: Python :: Implementation :: CPython",
@@ -26,12 +26,7 @@ cache-keys = [
 ]
 
 [dependency-groups]
-dev = [
-  "mypy>=1.13.0",
-  "pytest>=8.3.3",
-  "ruff>=0.7.2",
-  "vl-convert-python>=1.7.0",
-]
+dev = ["mypy>=1.18.2", "pytest>=9.0.1", "ruff>=0.14.5"]
 
 [tool.ruff]
 lint.select = [
