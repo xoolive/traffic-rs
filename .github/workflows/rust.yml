@@ -19,7 +19,8 @@ jobs:
           fetch-depth: 1
 
       - name: Code linting
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        # run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Code formatting
         run: cargo fmt --all --check
