@@ -1,3 +1,6 @@
+//! Thrust core functionalities.
+//!
+
 pub mod data;
 pub mod intervals;
 
